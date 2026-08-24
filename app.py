@@ -9,7 +9,28 @@ st.set_page_config(page_title="Dashboard de Óbitos - Porto Feliz", page_icon="�
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    /* Custom clean cards to avoid any ellipsis truncation */
+    .metric-card {
+        background-color: #ffffff;
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        text-align: center;
+        border-top: 4px solid #2b5c8f;
+        height: 100%;
+    }
+    .metric-title {
+        font-size: 13px;
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+    .metric-value {
+        font-size: 18px;
+        color: #212529;
+        font-weight: 700;
+    }
     .section-divider { margin-top: 40px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
     </style>
 =""" , unsafe_allow_html=True)
@@ -85,18 +106,29 @@ est_avg_age = total_age_sum / total_count_age if total_count_age > 0 else 0
 est_avg_age_masc = max(0, est_avg_age - 2.5)
 est_avg_age_fem = est_avg_age + 3.0
 
-# KPI Cards (6 cards)
-col1, col2, col3, col4, col5, col6 = st.columns(6)
-col1.metric("Total de Óbitos", int(total_filtered_deaths))
-col2.metric("Média Anual", f"{avg_deaths_year:.1f}")
-col3.metric("Óbitos Masculinos", f"{int(total_masc)} ({pct_masc:.1f}% do total)")
-col4.metric("Óbitos Femininos", f"{int(total_fem)} ({pct_fem:.1f}% do total)")
-col5.metric("Média Idade (Homens)", f"{est_avg_age_masc:.1f} anos")
-col6.metric("Média Idade (Mulheres)", f"{est_avg_age_fem:.1f} anos")
+# Render custom HTML cards to prevent any text clipping or ellipsis (...)
+cols = st.columns(6)
+card_data = [
+    ("Total de Óbitos", f"{int(total_filtered_deaths)}"),
+    ("Média Anual", f"{avg_deaths_year:.1f}"),
+    ("Óbitos Masculinos", f"{int(total_masc)} ({pct_masc:.1f}%)"),
+    ("Óbitos Femininos", f"{int(total_fem)} ({pct_fem:.1f}%)"),
+    ("Média Idade (Homens)", f"{est_avg_age_masc:.1f} anos"),
+    ("Média Idade (Mulheres)", f"{est_avg_age_fem:.1f} anos")
+]
+
+for col, (title, val) in zip(cols, card_data):
+    with col:
+        st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">{title}</div>
+                <div class="metric-value">{val}</div>
+            </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
 
-# Row 1: Time Series (Full width now that sex pie chart is removed)
+# Row 1: Time Series
 st.subheader("📈 Curva de Óbitos ao Longo dos Anos")
 ts_df = pd.DataFrame({"Ano": filtered_years, "Óbitos": total_row[start_idx:end_idx+1]})
 fig_ts = px.line(ts_df, x="Ano", y="Óbitos", markers=True, 
