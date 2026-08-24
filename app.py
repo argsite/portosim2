@@ -63,11 +63,11 @@ def load_data():
     
     # Load SP comparison CSVs
     sp_df = pd.read_csv('sp_total_obitos_por_ano.csv')
-    sp_faixa_df = pd.read_csv('sp_obitos_total_por_faixa_etaria.csv')
+    sp_faixa_ano_df = pd.read_csv('obitos_por_ano_e_faixa_etaria.csv')
     
-    return years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_df
+    return years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_ano_df
 
-years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_df = load_data()
+years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_ano_df = load_data()
 
 st.title("🏥 Dashboard Epidemiológico de Óbitos - Porto Feliz (2006-2025)")
 st.markdown("Painel analítico interativo avançado com dados oficiais de mortalidade do município.")
@@ -230,18 +230,42 @@ with c3:
     faixa_plot_df = pd.DataFrame({"Faixa Etária": faixa_labels, "Total": faixa_totals})
     
     if compare_sp:
-        # Padroniza os nomes das categorias para ficarem idênticos e alinhados nos subplots
+        # Padronização das faixas de Porto Feliz
         padrao_faixas = [
             '< 01 ano', '01-04 anos', '05-09 anos', '10-14 anos', 
             '15-19 anos', '20-29 anos', '30-39 anos', '40-49 anos', 
             '50-59 anos', '60-69 anos', '70-79 anos', '80 e +'
         ]
-        
         faixa_plot_df["Faixa Etária"] = padrao_faixas
         
-        # Filtra/padroniza o dataframe de SP (removendo 'Nao informada' para alinhar perfeitamente)
-        sp_faixa_filtrado = sp_faixa_df[sp_faixa_df['Faixa_Etaria'] != 'Nao informada'].copy()
-        sp_faixa_filtrado["Faixa_Etaria"] = padrao_faixas
+        # Filtrar e agregar os dados de SP pelo período selecionado no slider
+        sp_faixa_filtrado_anos = sp_faixa_ano_df[sp_faixa_ano_df['Ano'].isin(filtered_years)]
+        sp_faixa_agregado = sp_faixa_filtrado_anos.groupby('Faixa_Etaria')['Total_Obitos'].sum().reset_index()
+        
+        # Mapeamento para alinhar exatamente com os rótulos de Porto Feliz
+        map_faixas_sp = {
+            '<1 ano': '< 01 ano',
+            '01 a 04 anos': '01-04 anos',
+            '05 a 09 anos': '05-09 anos',
+            '10 a 14 anos': '10-14 anos',
+            '15 a 19 anos': '15-19 anos',
+            '20 a 29 anos': '20-29 anos',
+            '30 a 39 anos': '30-39 anos',
+            '40 a 49 anos': '40-49 anos',
+            '50 a 59 anos': '50-59 anos',
+            '60 a 69 anos': '60-69 anos',
+            '70 a 79 anos': '70-79 anos',
+            '80+ anos': '80 e +'
+        }
+        sp_faixa_agregado['Faixa_Normalizada'] = sp_faixa_agregado['Faixa_Etaria'].map(map_faixas_sp)
+        
+        # Garantir a ordem correta das categorias
+        sp_faixa_agregado['Faixa_Normalizada'] = pd.Categorical(
+            sp_faixa_agregado['Faixa_Normalizada'], 
+            categories=padrao_faixas, 
+            ordered=True
+        )
+        sp_faixa_agregado = sp_faixa_agregado.sort_values('Faixa_Normalizada')
         
         fig_faixa_comp = make_subplots(
             rows=2, cols=1,
@@ -264,11 +288,11 @@ with c3:
         
         fig_faixa_comp.add_trace(
             go.Bar(
-                x=sp_faixa_filtrado["Faixa_Etaria"],
-                y=sp_faixa_filtrado["Total_Obitos"],
+                x=sp_faixa_agregado["Faixa_Normalizada"],
+                y=sp_faixa_agregado["Total_Obitos"],
                 name='Estado de SP',
                 marker_color='#d9534f',
-                text=sp_faixa_filtrado["Total_Obitos"],
+                text=sp_faixa_agregado["Total_Obitos"],
                 textposition='auto'
             ),
             row=2, col=1
