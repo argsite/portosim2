@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 
-st.set_page_config(page_title="Dashboard de Óbitos - Porto Feliz", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Painel de Análise de Mortalidade - Porto Feliz", page_icon="📊", layout="wide")
 
 st.markdown("""
     <style>
@@ -70,7 +70,7 @@ def load_data():
 
 years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_ano_df, sp_top5_causes_df = load_data()
 
-st.title("🏥 Dashboard Epidemiológico de Óbitos - Porto Feliz (2006-2025)")
+st.title("🏥 Painel de Análise de Mortalidade - Porto Feliz (2006-2025)")
 st.markdown("Painel analítico interativo avançado com dados oficiais de mortalidade do município.")
 
 # Sidebar filters
@@ -80,7 +80,7 @@ selected_range = st.sidebar.slider("Selecione o Período (Anos)", min_value=min(
 # Toggle for comparison
 st.sidebar.markdown("---")
 st.sidebar.header("Comparativo Regional")
-compare_sp = st.sidebar.checkbox("Ativar comparação com dados de SP")
+compare_sp = st.sidebar.checkbox("Ativar comparação com dados do Estado de SP")
 
 start_idx = years.index(selected_range[0])
 end_idx = years.index(selected_range[1])
@@ -225,7 +225,7 @@ st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 c3, c4 = st.columns(2)
 
 with c3:
-    st.subheader("👶👵 Óbitos por Faixa Etária (com Totais)")
+    st.subheader("👶👵 Óbitos por Faixa Etária")
     faixa_totals = faixa_df.iloc[:-1, start_idx+1:end_idx+2].sum(axis=1).values
     faixa_labels = faixa_df['Categoria'].values[:-1]
     faixa_plot_df = pd.DataFrame({"Faixa Etária": faixa_labels, "Total": faixa_totals})
@@ -415,7 +415,7 @@ st.plotly_chart(fig_top_cid, use_container_width=True)
 # NOVO: Ranking Geral de Mortalidade para o Estado de SP (exibido abaixo se comparativo ativado)
 if compare_sp:
     st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
-    st.subheader("🏆 Ranking Geral de Mortalidade por Principais Causas - Estado de SP")
+    st.subheader("Ranking Geral de Mortalidade por Principais Causas - Estado de SP")
     st.markdown("Acumulado das principais causas de óbito registradas no Estado de São Paulo para o período selecionado.")
     
     sp_causes_filtered = sp_top5_causes_df[sp_top5_causes_df['Ano'].isin(filtered_years)]
