@@ -125,6 +125,9 @@ card_data = [
     ("Média Idade (Mulheres)", f"{est_avg_age_fem:.1f} anos")
 ]
 
+for col, (title, val) in cols, card_data: # type: ignore
+    pass
+
 for col, (title, val) in zip(cols, card_data):
     with col:
         st.markdown(f"""
@@ -136,78 +139,36 @@ for col, (title, val) in zip(cols, card_data):
 
 st.markdown("---")
 
-# Row 1: Time Series with Stacked Subplots when SP comparison is enabled
-st.subheader("📈 Curva de Óbitos ao Longo dos Anos")
+# Row 1: Time Series (Apenas Porto Feliz)
+st.subheader("📈 Curva de Óbitos ao Longo dos Anos (Porto Feliz)")
 
-if compare_sp:
-    fig_ts = make_subplots(
-        rows=2, cols=1, 
-        shared_xaxes=True, 
-        vertical_spacing=0.12,
-        subplot_titles=("Óbitos em Porto Feliz", "Óbitos no Estado de São Paulo")
+fig_ts = go.Figure()
+fig_ts.add_trace(
+    go.Scatter(
+        x=filtered_years,
+        y=total_row[start_idx:end_idx+1],
+        mode='lines+markers',
+        name='Porto Feliz',
+        line=dict(color='#2b5c8f', width=3)
     )
-    
-    fig_ts.add_trace(
-        go.Scatter(
-            x=filtered_years,
-            y=total_row[start_idx:end_idx+1],
-            mode='lines+markers',
-            name='Porto Feliz',
-            line=dict(color='#2b5c8f', width=3)
-        ),
-        row=1, col=1
-    )
-    
-    sp_filtered = sp_df[sp_df['Ano'].isin(filtered_years)]
-    if not sp_filtered.empty:
-        fig_ts.add_trace(
-            go.Scatter(
-                x=sp_filtered['Ano'],
-                y=sp_filtered['total_obitos'],
-                mode='lines+markers',
-                name='Estado de São Paulo',
-                line=dict(color='#e74c3c', width=2.5)
-            ),
-            row=2, col=1
-        )
-        
-    fig_ts.update_layout(
-        height=550,
-        plot_bgcolor='rgba(0,0,0,0)', 
-        paper_bgcolor='rgba(0,0,0,0)', 
-        margin=dict(t=50, b=30, l=30, r=30),
-        showlegend=False
-    )
-    
-    fig_ts.update_yaxes(title_text="Nº de Óbitos", row=1, col=1)
-    fig_ts.update_yaxes(title_text="Nº de Óbitos", row=2, col=1)
-    fig_ts.update_xaxes(tickmode='linear', dtick=1, tickangle=-45, row=2, col=1)
+)
 
-else:
-    fig_ts = go.Figure()
-    fig_ts.add_trace(
-        go.Scatter(
-            x=filtered_years,
-            y=total_row[start_idx:end_idx+1],
-            mode='lines+markers',
-            name='Porto Feliz',
-            line=dict(color='#2b5c8f', width=3)
-        )
-    )
-    fig_ts.update_layout(
-        height=400,
-        plot_bgcolor='rgba(0,0,0,0)', 
-        paper_bgcolor='rgba(0,0,0,0)', 
-        margin=dict(t=30, b=20, l=20, r=20),
-        xaxis=dict(tickmode='linear', dtick=1, tickangle=-45),
-        yaxis=dict(title_text="Nº de Óbitos"),
-        showlegend=False
-    )
+fig_ts.update_layout(
+    height=400,
+    plot_bgcolor='rgba(0,0,0,0)', 
+    paper_bgcolor='rgba(0,0,0,0)', 
+    margin=dict(t=30, b=20, l=20, r=20),
+    xaxis=dict(tickmode='linear', dtick=1, tickangle=-45),
+    yaxis=dict(title_text="Nº de Óbitos"),
+    showlegend=False
+)
 
 st.plotly_chart(fig_ts, use_container_width=True)
 
-# NOVO: Gráfico de Barras Comparativo Lado a Lado (Exibido apenas se a comparação com SP estiver ativa)
+# NOVO: Gráfico de Barras Comparativo Lado a Lado com valores nas barras de SP e Porto Feliz
 if compare_sp:
+    sp_filtered = sp_df[sp_df['Ano'].isin(filtered_years)]
+    
     st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
     st.subheader("📊 Comparativo Anual em Barras (Porto Feliz vs Estado de SP)")
     st.markdown("Comparação direta do volume de óbitos por ano em painéis de barras independentes.")
@@ -233,13 +194,16 @@ if compare_sp:
             row=1, col=1
         )
         
-        # Barras Estado de SP
+        # Barras Estado de SP (agora com text e textposition)
+        sp_y_values = sp_filtered['total_obitos'].values
         fig_bar_comp.add_trace(
             go.Bar(
                 x=sp_filtered['Ano'],
-                y=sp_filtered['total_obitos'],
+                y=sp_y_values,
                 name='Estado de SP',
-                marker_color='#e74c3c'
+                marker_color='#e74c3c',
+                text=sp_y_values,
+                textposition='auto'
             ),
             row=2, col=1
         )
