@@ -33,7 +33,7 @@ st.markdown("""
     }
     .section-divider { margin-top: 40px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
     </style>
-""", unsafe_allow_html=True)
+=""" , unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
@@ -168,7 +168,7 @@ if compare_sp:
             secondary_y=True
         )
 
-# Y-axes titles
+# Y-axes titles configuration
 fig_ts.update_yaxes(title_text="Óbitos em Porto Feliz", titlefont=dict(color="#2b5c8f"), secondary_y=False)
 if compare_sp:
     fig_ts.update_yaxes(title_text="Óbitos no Estado de SP", titlefont=dict(color="#e74c3c"), secondary_y=True)
