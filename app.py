@@ -140,7 +140,6 @@ st.markdown("---")
 st.subheader("📈 Curva de Óbitos ao Longo dos Anos")
 
 if compare_sp:
-    # Criação de 2 painéis verticais com eixo X compartilhado
     fig_ts = make_subplots(
         rows=2, cols=1, 
         shared_xaxes=True, 
@@ -148,7 +147,6 @@ if compare_sp:
         subplot_titles=("Óbitos em Porto Feliz", "Óbitos no Estado de São Paulo")
     )
     
-    # Trace superior: Porto Feliz
     fig_ts.add_trace(
         go.Scatter(
             x=filtered_years,
@@ -160,7 +158,6 @@ if compare_sp:
         row=1, col=1
     )
     
-    # Trace inferior: Estado de São Paulo
     sp_filtered = sp_df[sp_df['Ano'].isin(filtered_years)]
     if not sp_filtered.empty:
         fig_ts.add_trace(
@@ -182,15 +179,12 @@ if compare_sp:
         showlegend=False
     )
     
-    # Configuração dos eixos de cada painel
     fig_ts.update_yaxes(title_text="Nº de Óbitos", row=1, col=1)
     fig_ts.update_yaxes(title_text="Nº de Óbitos", row=2, col=1)
     fig_ts.update_xaxes(tickmode='linear', dtick=1, tickangle=-45, row=2, col=1)
 
 else:
-    # Gráfico simples caso a comparação esteja desativada
     fig_ts = go.Figure()
-    
     fig_ts.add_trace(
         go.Scatter(
             x=filtered_years,
@@ -200,7 +194,6 @@ else:
             line=dict(color='#2b5c8f', width=3)
         )
     )
-    
     fig_ts.update_layout(
         height=400,
         plot_bgcolor='rgba(0,0,0,0)', 
@@ -212,6 +205,58 @@ else:
     )
 
 st.plotly_chart(fig_ts, use_container_width=True)
+
+# NOVO: Gráfico de Barras Comparativo Lado a Lado (Exibido apenas se a comparação com SP estiver ativa)
+if compare_sp:
+    st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+    st.subheader("📊 Comparativo Anual em Barras (Porto Feliz vs Estado de SP)")
+    st.markdown("Comparação direta do volume de óbitos por ano em painéis de barras independentes.")
+    
+    if not sp_filtered.empty:
+        fig_bar_comp = make_subplots(
+            rows=2, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.12,
+            subplot_titles=("Porto Feliz - Óbitos Anuais", "Estado de São Paulo - Óbitos Anuais")
+        )
+        
+        # Barras Porto Feliz
+        fig_bar_comp.add_trace(
+            go.Bar(
+                x=filtered_years,
+                y=total_row[start_idx:end_idx+1],
+                name='Porto Feliz',
+                marker_color='#2b5c8f',
+                text=total_row[start_idx:end_idx+1],
+                textposition='auto'
+            ),
+            row=1, col=1
+        )
+        
+        # Barras Estado de SP
+        fig_bar_comp.add_trace(
+            go.Bar(
+                x=sp_filtered['Ano'],
+                y=sp_filtered['total_obitos'],
+                name='Estado de SP',
+                marker_color='#e74c3c'
+            ),
+            row=2, col=1
+        )
+        
+        fig_bar_comp.update_layout(
+            height=550,
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            margin=dict(t=50, b=30, l=30, r=30),
+            showlegend=False
+        )
+        
+        fig_bar_comp.update_yaxes(title_text="Óbitos", row=1, col=1)
+        fig_bar_comp.update_yaxes(title_text="Óbitos", row=2, col=1)
+        fig_bar_comp.update_xaxes(tickmode='linear', dtick=1, tickangle=-45, row=2, col=1)
+        
+        st.plotly_chart(fig_bar_comp, use_container_width=True)
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
