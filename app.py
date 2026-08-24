@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Dashboard de Óbitos - Porto Feliz", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Painel de Análise de Mortalidade - Porto Feliz (2006 a 2025)", page_icon="📊", layout="wide")
 
 st.markdown("""
     <style>
@@ -146,7 +146,7 @@ st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 c3, c4 = st.columns(2)
 
 with c3:
-    st.subheader("👶👵 Óbitos por Faixa Etária (com Totais)")
+    st.subheader("👶👵 Óbitos por Faixa Etária")
     faixa_totals = faixa_df.iloc[:-1, start_idx+1:end_idx+2].sum(axis=1).values
     faixa_labels = faixa_df['Categoria'].values[:-1]
     faixa_plot_df = pd.DataFrame({"Faixa Etária": faixa_labels, "Total": faixa_totals})
@@ -173,7 +173,7 @@ with c4:
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
 # Row 3: Causes analysis (legend only, description text list removed)
-st.subheader("🔬 Análise Detalhada de Causas (Capítulos CID-10)")
+st.subheader("🔬 Análise Detalhada de Causas")
 
 top_cid_rows = cid_df.copy()
 top_cid_rows['SumTotal'] = top_cid_rows.iloc[:, start_idx+1:end_idx+2].sum(axis=1)
@@ -211,7 +211,7 @@ st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
 # Row 4: Top Causes overall bar chart with full names
 fig_top_cid = px.bar(top_cid_rows, x='SumTotal', y=top_cid_rows['Categoria'].apply(lambda x: x.strip()), orientation='h',
-                     text='SumTotal', title="Ranking Geral de Mortalidade por Grupo de Causas (CID-10)",
+                     text='SumTotal', title="Ranking Geral de Mortalidade por Grupo de Causas",
                      color='SumTotal', color_continuous_scale='Reds')
 fig_top_cid.update_traces(textposition='outside')
 fig_top_cid.update_layout(
