@@ -169,9 +169,17 @@ if compare_sp:
         )
 
 # Y-axes titles configuration
-fig_ts.update_yaxes(title_text="Óbitos em Porto Feliz", titlefont=dict(color="#2b5c8f"), secondary_y=False)
+fig_ts.update_yaxes(
+    title_text="Óbitos em Porto Feliz", 
+    title=dict(font=dict(color="#2b5c8f")), 
+    secondary_y=False
+)
 if compare_sp:
-    fig_ts.update_yaxes(title_text="Óbitos no Estado de SP", titlefont=dict(color="#e74c3c"), secondary_y=True)
+    fig_ts.update_yaxes(
+        title_text="Óbitos no Estado de SP", 
+        title=dict(font=dict(color="#e74c3c")), 
+        secondary_y=True
+    )
 
 fig_ts.update_layout(
     plot_bgcolor='rgba(0,0,0,0)', 
