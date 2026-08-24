@@ -9,7 +9,6 @@ st.set_page_config(page_title="Dashboard de Óbitos - Porto Feliz", page_icon="�
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
-    /* Custom clean cards to avoid any ellipsis truncation */
     .metric-card {
         background-color: #ffffff;
         padding: 16px;
@@ -106,7 +105,7 @@ est_avg_age = total_age_sum / total_count_age if total_count_age > 0 else 0
 est_avg_age_masc = max(0, est_avg_age - 2.5)
 est_avg_age_fem = est_avg_age + 3.0
 
-# Render custom HTML cards to prevent any text clipping or ellipsis (...)
+# Render custom HTML cards
 cols = st.columns(6)
 card_data = [
     ("Total de Óbitos", f"{int(total_filtered_deaths)}"),
@@ -173,7 +172,7 @@ with c4:
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
-# Row 3: Causes analysis with full names and vertical list legend below
+# Row 3: Causes analysis (legend only, description text list removed)
 st.subheader("🔬 Análise Detalhada de Causas (Capítulos CID-10)")
 
 top_cid_rows = cid_df.copy()
@@ -195,7 +194,7 @@ fig_causes_year = px.bar(cid_long_df, x="Ano", y="Óbitos", color="Causa", barmo
 
 fig_causes_year.update_layout(
     plot_bgcolor='rgba(0,0,0,0)', 
-    margin=dict(t=40, b=40, l=20, r=20),
+    margin=dict(t=40, b=60, l=20, r=20),
     xaxis=dict(tickmode='linear', dtick=1, tickangle=-45),
     legend=dict(
         orientation="h",
@@ -207,10 +206,6 @@ fig_causes_year.update_layout(
     )
 )
 st.plotly_chart(fig_causes_year, use_container_width=True)
-
-st.markdown("**📋 Descrição Completa das Causas (Capítulos CID-10):**")
-for cat in top_cid_rows['Categoria'].values:
-    st.markdown(f"- {cat.strip()}")
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
