@@ -1,9 +1,9 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import numpy as np
 
 st.set_page_config(page_title="Dashboard de Óbitos - Porto Feliz", page_icon="📊", layout="wide")
 
@@ -33,7 +33,7 @@ st.markdown("""
     }
     .section-divider { margin-top: 40px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
     </style>
-=""" , unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
@@ -136,25 +136,31 @@ for col, (title, val) in zip(cols, card_data):
 
 st.markdown("---")
 
-# Row 1: Time Series with Dual Y-Axis when SP comparison is enabled
+# Row 1: Time Series with Stacked Subplots when SP comparison is enabled
 st.subheader("📈 Curva de Óbitos ao Longo dos Anos")
 
-fig_ts = make_subplots(specs=[[{"secondary_y": True}]])
-
-# Porto Feliz trace (Primary Y-axis)
-fig_ts.add_trace(
-    go.Scatter(
-        x=filtered_years,
-        y=total_row[start_idx:end_idx+1],
-        mode='lines+markers',
-        name='Porto Feliz (Escala Esquerda)',
-        line=dict(color='#2b5c8f', width=3)
-    ),
-    secondary_y=False
-)
-
-# SP comparison trace if enabled (Secondary Y-axis)
 if compare_sp:
+    # Criação de 2 painéis verticais com eixo X compartilhado
+    fig_ts = make_subplots(
+        rows=2, cols=1, 
+        shared_xaxes=True, 
+        vertical_spacing=0.12,
+        subplot_titles=("Óbitos em Porto Feliz", "Óbitos no Estado de São Paulo")
+    )
+    
+    # Trace superior: Porto Feliz
+    fig_ts.add_trace(
+        go.Scatter(
+            x=filtered_years,
+            y=total_row[start_idx:end_idx+1],
+            mode='lines+markers',
+            name='Porto Feliz',
+            line=dict(color='#2b5c8f', width=3)
+        ),
+        row=1, col=1
+    )
+    
+    # Trace inferior: Estado de São Paulo
     sp_filtered = sp_df[sp_df['Ano'].isin(filtered_years)]
     if not sp_filtered.empty:
         fig_ts.add_trace(
@@ -162,32 +168,49 @@ if compare_sp:
                 x=sp_filtered['Ano'],
                 y=sp_filtered['total_obitos'],
                 mode='lines+markers',
-                name='Estado de São Paulo (Escala Direita)',
-                line=dict(color='#e74c3c', width=2.5, dash='dash')
+                name='Estado de São Paulo',
+                line=dict(color='#e74c3c', width=2.5)
             ),
-            secondary_y=True
+            row=2, col=1
         )
+        
+    fig_ts.update_layout(
+        height=550,
+        plot_bgcolor='rgba(0,0,0,0)', 
+        paper_bgcolor='rgba(0,0,0,0)', 
+        margin=dict(t=50, b=30, l=30, r=30),
+        showlegend=False
+    )
+    
+    # Configuração dos eixos de cada painel
+    fig_ts.update_yaxes(title_text="Nº de Óbitos", row=1, col=1)
+    fig_ts.update_yaxes(title_text="Nº de Óbitos", row=2, col=1)
+    fig_ts.update_xaxes(tickmode='linear', dtick=1, tickangle=-45, row=2, col=1)
 
-# Y-axes titles configuration
-fig_ts.update_yaxes(
-    title_text="Óbitos em Porto Feliz", 
-    title=dict(font=dict(color="#2b5c8f")), 
-    secondary_y=False
-)
-if compare_sp:
-    fig_ts.update_yaxes(
-        title_text="Óbitos no Estado de SP", 
-        title=dict(font=dict(color="#e74c3c")), 
-        secondary_y=True
+else:
+    # Gráfico simples caso a comparação esteja desativada
+    fig_ts = go.Figure()
+    
+    fig_ts.add_trace(
+        go.Scatter(
+            x=filtered_years,
+            y=total_row[start_idx:end_idx+1],
+            mode='lines+markers',
+            name='Porto Feliz',
+            line=dict(color='#2b5c8f', width=3)
+        )
+    )
+    
+    fig_ts.update_layout(
+        height=400,
+        plot_bgcolor='rgba(0,0,0,0)', 
+        paper_bgcolor='rgba(0,0,0,0)', 
+        margin=dict(t=30, b=20, l=20, r=20),
+        xaxis=dict(tickmode='linear', dtick=1, tickangle=-45),
+        yaxis=dict(title_text="Nº de Óbitos"),
+        showlegend=False
     )
 
-fig_ts.update_layout(
-    plot_bgcolor='rgba(0,0,0,0)', 
-    paper_bgcolor='rgba(0,0,0,0)', 
-    margin=dict(t=30, b=20, l=20, r=20),
-    xaxis=dict(tickmode='linear', dtick=1, tickangle=-45),
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-)
 st.plotly_chart(fig_ts, use_container_width=True)
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
@@ -283,7 +306,6 @@ scale_factor = total_filtered_deaths / total_all_period if total_all_period > 0 
 demographic_causes = []
 cause_names = ['Doenças Circulatórias', 'Neoplasias (Tumores)', 'Doenças Respiratórias', 'Causas Externas']
 
-import numpy as np
 np.random.seed(42)
 for age in ['15-39 anos', '40-59 anos', '60-79 anos', '80 anos e +']:
     for sex in ['Sexo: Masculino', 'Sexo: Feminino']:
