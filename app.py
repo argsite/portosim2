@@ -64,10 +64,11 @@ def load_data():
     # Load SP comparison CSVs
     sp_df = pd.read_csv('sp_total_obitos_por_ano.csv')
     sp_faixa_ano_df = pd.read_csv('obitos_por_ano_e_faixa_etaria.csv')
+    sp_top5_causes_df = pd.read_csv('sp_top5_causas_obito_por_ano_sp.csv')
     
-    return years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_ano_df
+    return years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_ano_df, sp_top5_causes_df
 
-years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_ano_df = load_data()
+years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_ano_df, sp_top5_causes_df = load_data()
 
 st.title("🏥 Dashboard Epidemiológico de Óbitos - Porto Feliz (2006-2025)")
 st.markdown("Painel analítico interativo avançado com dados oficiais de mortalidade do município.")
@@ -230,7 +231,6 @@ with c3:
     faixa_plot_df = pd.DataFrame({"Faixa Etária": faixa_labels, "Total": faixa_totals})
     
     if compare_sp:
-        # Padronização das faixas de Porto Feliz
         padrao_faixas = [
             '< 01 ano', '01-04 anos', '05-09 anos', '10-14 anos', 
             '15-19 anos', '20-29 anos', '30-39 anos', '40-49 anos', 
@@ -238,11 +238,9 @@ with c3:
         ]
         faixa_plot_df["Faixa Etária"] = padrao_faixas
         
-        # Filtrar e agregar os dados de SP pelo período selecionado no slider
         sp_faixa_filtrado_anos = sp_faixa_ano_df[sp_faixa_ano_df['Ano'].isin(filtered_years)]
         sp_faixa_agregado = sp_faixa_filtrado_anos.groupby('Faixa_Etaria')['Total_Obitos'].sum().reset_index()
         
-        # Mapeamento para alinhar exatamente com os rótulos de Porto Feliz
         map_faixas_sp = {
             '<1 ano': '< 01 ano',
             '01 a 04 anos': '01-04 anos',
@@ -258,8 +256,6 @@ with c3:
             '80+ anos': '80 e +'
         }
         sp_faixa_agregado['Faixa_Normalizada'] = sp_faixa_agregado['Faixa_Etaria'].map(map_faixas_sp)
-        
-        # Garantir a ordem correta das categorias
         sp_faixa_agregado['Faixa_Normalizada'] = pd.Categorical(
             sp_faixa_agregado['Faixa_Normalizada'], 
             categories=padrao_faixas, 
@@ -322,7 +318,7 @@ with c4:
     st.subheader("📍 Local de Ocorrência")
     local_totals = local_df.iloc[:, start_idx+1:end_idx+2].sum(axis=1).values
     local_labels = local_df['Categoria'].values
-    local_plot_df = pd.DataFrame({"Local": local_labels, "Total": local_totals}).sort_values("Total", ascending=True)
+    local_plot_df = pd.DataFrame({"Local": local_labels, "Total": local_totals}).sort_values("Local", ascending=True)
     
     fig_local = px.bar(local_plot_df, x="Total", y="Local", orientation='h', text="Total",
                        color="Total", color_continuous_scale="Purples")
@@ -332,7 +328,7 @@ with c4:
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
-# Row 3: Causes analysis
+# Row 3: Causes analysis (Porto Feliz)
 st.subheader("🔬 Análise Detalhada de Causas (Capítulos CID-10)")
 
 top_cid_rows = cid_df.copy()
@@ -349,7 +345,7 @@ for idx, row in top_cid_rows.iterrows():
 cid_long_df = pd.DataFrame(cid_long_list)
 
 fig_causes_year = px.bar(cid_long_df, x="Ano", y="Óbitos", color="Causa", barmode="group",
-                         title="Evolução Anual das 5 Principais Causas de Óbito",
+                         title="Evolução Anual das 5 Principais Causas de Óbito (Porto Feliz)",
                          color_discrete_sequence=px.colors.qualitative.Safe)
 
 fig_causes_year.update_layout(
@@ -366,6 +362,39 @@ fig_causes_year.update_layout(
     )
 )
 st.plotly_chart(fig_causes_year, use_container_width=True)
+
+# NOVO: Gráfico comparativo de Causas para o Estado de SP (subpanels empilhados se comparativo ativado)
+if compare_sp:
+    st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+    st.subheader("📊 Comparativo das Top 5 Causas de Óbito por Ano (Estado de SP)")
+    st.markdown("Evolução anual das principais causas de óbito registradas no Estado de São Paulo.")
+    
+    sp_causes_filtered = sp_top5_causes_df[sp_top5_causes_df['Ano'].isin(filtered_years)]
+    
+    if not sp_causes_filtered.empty:
+        fig_causes_sp = px.bar(
+            sp_causes_filtered, 
+            x="Ano", 
+            y="Total_Obitos", 
+            color="Descricao_Causa", 
+            barmode="group",
+            title="Evolução Anual das Principais Causas de Óbito - Estado de SP",
+            color_discrete_sequence=px.colors.qualitative.Safe
+        )
+        fig_causes_sp.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)', 
+            margin=dict(t=40, b=60, l=20, r=20),
+            xaxis=dict(tickmode='linear', dtick=1, tickangle=-45),
+            legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=-0.35,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=11)
+            )
+        )
+        st.plotly_chart(fig_causes_sp, use_container_width=True)
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
