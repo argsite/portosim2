@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -11,7 +12,7 @@ st.markdown("""
     .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .section-divider { margin-top: 40px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
     </style>
-""", unsafe_allow_html=True)
+=""" , unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
@@ -61,6 +62,8 @@ avg_deaths_year = total_filtered_deaths / len(filtered_years)
 sex_totals_filtered = sexo_df.iloc[:-1, start_idx+1:end_idx+2].sum(axis=1).values
 total_masc = sex_totals_filtered[0]
 total_fem = sex_totals_filtered[1]
+pct_masc = (total_masc / total_filtered_deaths) * 100 if total_filtered_deaths > 0 else 0
+pct_fem = (total_fem / total_filtered_deaths) * 100 if total_filtered_deaths > 0 else 0
 
 # Estimate average age based on age brackets midpoints
 age_midpoints = {
@@ -82,40 +85,31 @@ est_avg_age = total_age_sum / total_count_age if total_count_age > 0 else 0
 est_avg_age_masc = max(0, est_avg_age - 2.5)
 est_avg_age_fem = est_avg_age + 3.0
 
-# KPI Cards
+# KPI Cards (6 cards)
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 col1.metric("Total de Óbitos", int(total_filtered_deaths))
 col2.metric("Média Anual", f"{avg_deaths_year:.1f}")
-col3.metric("Óbitos Masculinos", int(total_masc), f"{(total_masc/total_filtered_deaths)*100:.1f}%")
-col4.metric("Óbitos Femininos", int(total_fem), f"{(total_fem/total_filtered_deaths)*100:.1f}%")
+col3.metric("Óbitos Masculinos", f"{int(total_masc)} ({pct_masc:.1f}% do total)")
+col4.metric("Óbitos Femininos", f"{int(total_fem)} ({pct_fem:.1f}% do total)")
 col5.metric("Média Idade (Homens)", f"{est_avg_age_masc:.1f} anos")
 col6.metric("Média Idade (Mulheres)", f"{est_avg_age_fem:.1f} anos")
 
 st.markdown("---")
 
-# Row 1: Time Series & Sex Distribution
-c1, c2 = st.columns([2, 1])
+# Row 1: Time Series (Full width now that sex pie chart is removed)
+st.subheader("📈 Curva de Óbitos ao Longo dos Anos")
+ts_df = pd.DataFrame({"Ano": filtered_years, "Óbitos": total_row[start_idx:end_idx+1]})
+fig_ts = px.line(ts_df, x="Ano", y="Óbitos", markers=True, 
+                 color_discrete_sequence=['#2b5c8f'])
+fig_ts.update_layout(
+    plot_bgcolor='rgba(0,0,0,0)', 
+    paper_bgcolor='rgba(0,0,0,0)', 
+    margin=dict(t=20, b=20, l=20, r=20),
+    xaxis=dict(tickmode='linear', dtick=1, tickangle=-45)
+)
+st.plotly_chart(fig_ts, use_container_width=True)
 
-with c1:
-    st.subheader("📈 Curva de Óbitos ao Longo dos Anos")
-    ts_df = pd.DataFrame({"Ano": filtered_years, "Óbitos": total_row[start_idx:end_idx+1]})
-    fig_ts = px.line(ts_df, x="Ano", y="Óbitos", markers=True, 
-                     color_discrete_sequence=['#2b5c8f'])
-    fig_ts.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)', 
-        paper_bgcolor='rgba(0,0,0,0)', 
-        margin=dict(t=20, b=20, l=20, r=20),
-        xaxis=dict(tickmode='linear', dtick=1, tickangle=-45)
-    )
-    st.plotly_chart(fig_ts, use_container_width=True)
-
-with c2:
-    st.subheader("👥 Óbitos por Sexo")
-    sex_df_plot = pd.DataFrame({"Sexo": ['Masculino', 'Feminino'], "Total": [total_masc, total_fem]})
-    fig_sex = px.pie(sex_df_plot, names="Sexo", values="Total", hole=0.4,
-                     color_discrete_sequence=['#3b82f6', '#ec4899'])
-    fig_sex.update_layout(margin=dict(t=20, b=20, l=20, r=20), legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5))
-    st.plotly_chart(fig_sex, use_container_width=True)
+st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
 # Row 2: Age Distribution & Local de Ocorrência
 c3, c4 = st.columns(2)
@@ -145,13 +139,12 @@ with c4:
     fig_local.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=20, l=20, r=20))
     st.plotly_chart(fig_local, use_container_width=True)
 
-st.markdown("---")
+st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
-# Row 3: Causes analysis with full names and vertical list legend below (Dynamic to filter)
+# Row 3: Causes analysis with full names and vertical list legend below
 st.subheader("🔬 Análise Detalhada de Causas (Capítulos CID-10)")
 
 top_cid_rows = cid_df.copy()
-# Recalculate SumTotal based strictly on the selected years filter range
 top_cid_rows['SumTotal'] = top_cid_rows.iloc[:, start_idx+1:end_idx+2].sum(axis=1)
 top_cid_rows = top_cid_rows.sort_values('SumTotal', ascending=False).head(5)
 
@@ -189,7 +182,7 @@ for cat in top_cid_rows['Categoria'].values:
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
-# Row 4: Top Causes overall bar chart with full names (Dynamic to filter)
+# Row 4: Top Causes overall bar chart with full names
 fig_top_cid = px.bar(top_cid_rows, x='SumTotal', y=top_cid_rows['Categoria'].apply(lambda x: x.strip()), orientation='h',
                      text='SumTotal', title="Ranking Geral de Mortalidade por Grupo de Causas (CID-10)",
                      color='SumTotal', color_continuous_scale='Reds')
@@ -203,11 +196,10 @@ st.plotly_chart(fig_top_cid, use_container_width=True)
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
-# Row 5: Principais causas de óbito por sexo e por faixa etária (Dynamic scaling based on filter totals)
+# Row 5: Principais causas de óbito por sexo e por faixa etária
 st.subheader("👥👶 Principais Causas de Óbito por Sexo e por Faixa Etária")
 st.markdown("Cruzamento detalhado dos óbitos por grandes grupos de causas, segmentado por faixa etária e separado visualmente por sexo (proporcional ao período selecionado).")
 
-# Scale factor based on filtered deaths relative to total period
 total_all_period = sum(total_row)
 scale_factor = total_filtered_deaths / total_all_period if total_all_period > 0 else 1.0
 
