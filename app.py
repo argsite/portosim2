@@ -318,7 +318,7 @@ with c4:
     st.subheader("📍 Local de Ocorrência")
     local_totals = local_df.iloc[:, start_idx+1:end_idx+2].sum(axis=1).values
     local_labels = local_df['Categoria'].values
-    local_plot_df = pd.DataFrame({"Local": local_labels, "Total": local_totals}).sort_values("Local", ascending=True)
+    local_plot_df = pd.DataFrame({"Local": local_labels, "Total": local_totals}).sort_values("Total", ascending=True)
     
     fig_local = px.bar(local_plot_df, x="Total", y="Local", orientation='h', text="Total",
                        color="Total", color_continuous_scale="Purples")
@@ -400,9 +400,9 @@ if compare_sp:
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
-# Row 4: Top Causes overall bar chart with full names
+# Row 4: Top Causes overall bar chart with full names (Porto Feliz)
 fig_top_cid = px.bar(top_cid_rows, x='SumTotal', y=top_cid_rows['Categoria'].apply(lambda x: x.strip()), orientation='h',
-                     text='SumTotal', title="Ranking Geral de Mortalidade por Grupo de Causas (CID-10)",
+                     text='SumTotal', title="Ranking Geral de Mortalidade por Grupo de Causas (CID-10) - Porto Feliz",
                      color='SumTotal', color_continuous_scale='Reds')
 fig_top_cid.update_traces(textposition='outside')
 fig_top_cid.update_layout(
@@ -411,6 +411,34 @@ fig_top_cid.update_layout(
     yaxis=dict(autorange="reversed")
 )
 st.plotly_chart(fig_top_cid, use_container_width=True)
+
+# NOVO: Ranking Geral de Mortalidade para o Estado de SP (exibido abaixo se comparativo ativado)
+if compare_sp:
+    st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+    st.subheader("🏆 Ranking Geral de Mortalidade por Principais Causas - Estado de SP")
+    st.markdown("Acumulado das principais causas de óbito registradas no Estado de São Paulo para o período selecionado.")
+    
+    sp_causes_filtered = sp_top5_causes_df[sp_top5_causes_df['Ano'].isin(filtered_years)]
+    sp_ranking_df = sp_causes_filtered.groupby('Descricao_Causa')['Total_Obitos'].sum().reset_index()
+    sp_ranking_df = sp_ranking_df.sort_values('Total_Obitos', ascending=True) # Ascending para o gráfico de barras horizontais do Plotly alinhar certo
+    
+    fig_top_sp = px.bar(
+        sp_ranking_df, 
+        x='Total_Obitos', 
+        y='Descricao_Causa', 
+        orientation='h',
+        text='Total_Obitos', 
+        title="Ranking Geral de Mortalidade por Causas - Estado de SP",
+        color='Total_Obitos', 
+        color_continuous_scale='Reds'
+    )
+    fig_top_sp.update_traces(textposition='outside')
+    fig_top_sp.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)', 
+        margin=dict(t=40, b=20, l=250, r=20),
+        yaxis=dict(title="")
+    )
+    st.plotly_chart(fig_top_sp, use_container_width=True)
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
