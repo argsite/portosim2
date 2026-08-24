@@ -125,9 +125,6 @@ card_data = [
     ("Média Idade (Mulheres)", f"{est_avg_age_fem:.1f} anos")
 ]
 
-for col, (title, val) in cols, card_data: # type: ignore
-    pass
-
 for col, (title, val) in zip(cols, card_data):
     with col:
         st.markdown(f"""
@@ -194,7 +191,7 @@ if compare_sp:
             row=1, col=1
         )
         
-        # Barras Estado de SP (agora com text e textposition)
+        # Barras Estado de SP (com rótulos numéricos)
         sp_y_values = sp_filtered['total_obitos'].values
         fig_bar_comp.add_trace(
             go.Bar(
