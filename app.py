@@ -229,12 +229,59 @@ with c3:
     faixa_labels = faixa_df['Categoria'].values[:-1]
     faixa_plot_df = pd.DataFrame({"Faixa Etária": faixa_labels, "Total": faixa_totals})
     
-    fig_faixa = px.bar(faixa_plot_df, x="Faixa Etária", y="Total", text="Total",
-                       color="Total", color_continuous_scale="Teal",
-                       labels={"Total": "Número de Óbitos"})
-    fig_faixa.update_traces(textposition='outside')
-    fig_faixa.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=40, l=20, r=20), xaxis_tickangle=-45)
-    st.plotly_chart(fig_faixa, use_container_width=True)
+    if compare_sp:
+        # Padrão comparativo em subplots se a chave estiver ativa
+        fig_faixa_comp = make_subplots(
+            rows=2, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.12,
+            subplot_titles=("Porto Feliz - Óbitos por Faixa Etária", "Estado de São Paulo - Óbitos por Faixa Etária")
+        )
+        
+        fig_faixa_comp.add_trace(
+            go.Bar(
+                x=faixa_plot_df["Faixa Etária"],
+                y=faixa_plot_df["Total"],
+                name='Porto Feliz',
+                marker_color='#00838f',
+                text=faixa_plot_df["Total"],
+                textposition='auto'
+            ),
+            row=1, col=1
+        )
+        
+        fig_faixa_comp.add_trace(
+            go.Bar(
+                x=sp_faixa_df["Faixa_Etaria"],
+                y=sp_faixa_df["Total_Obitos"],
+                name='Estado de SP',
+                marker_color='#d9534f',
+                text=sp_faixa_df["Total_Obitos"],
+                textposition='auto'
+            ),
+            row=2, col=1
+        )
+        
+        fig_faixa_comp.update_layout(
+            height=550,
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            margin=dict(t=50, b=30, l=30, r=30),
+            showlegend=False
+        )
+        fig_faixa_comp.update_yaxes(title_text="Óbitos", row=1, col=1)
+        fig_faixa_comp.update_yaxes(title_text="Óbitos", row=2, col=1)
+        fig_faixa_comp.update_xaxes(tickangle=-45, row=2, col=1)
+        
+        st.plotly_chart(fig_faixa_comp, use_container_width=True)
+    else:
+        # Gráfico padrão simples de Porto Feliz
+        fig_faixa = px.bar(faixa_plot_df, x="Faixa Etária", y="Total", text="Total",
+                           color="Total", color_continuous_scale="Teal",
+                           labels={"Total": "Número de Óbitos"})
+        fig_faixa.update_traces(textposition='outside')
+        fig_faixa.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=40, l=20, r=20), xaxis_tickangle=-45)
+        st.plotly_chart(fig_faixa, use_container_width=True)
 
 with c4:
     st.subheader("📍 Local de Ocorrência")
@@ -247,29 +294,6 @@ with c4:
     fig_local.update_traces(textposition='outside')
     fig_local.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=20, l=20, r=20))
     st.plotly_chart(fig_local, use_container_width=True)
-
-# NOVO: Gráfico comparativo de Faixa Etária para o Estado de SP (exibido abaixo se comparativo ativado)
-if compare_sp:
-    st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
-    st.subheader("📊 Óbitos por Faixa Etária - Estado de São Paulo")
-    st.markdown("Distribuição acumulada de óbitos por faixa etária no Estado de SP para contraponto com o município.")
-    
-    fig_sp_faixa = px.bar(
-        sp_faixa_df, 
-        x="Faixa_Etaria", 
-        y="Total_Obitos", 
-        text="Total_Obitos",
-        color="Total_Obitos", 
-        color_continuous_scale="Reds",
-        labels={"Total_Obitos": "Número de Óbitos", "Faixa_Etaria": "Faixa Etária"}
-    )
-    fig_sp_faixa.update_traces(textposition='outside')
-    fig_sp_faixa.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)', 
-        margin=dict(t=20, b=40, l=20, r=20), 
-        xaxis_tickangle=-45
-    )
-    st.plotly_chart(fig_sp_faixa, use_container_width=True)
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
