@@ -64,7 +64,7 @@ def load_data():
     # Load SP comparison CSVs
     sp_df = pd.read_csv('sp_total_obitos_por_ano.csv')
     sp_faixa_ano_df = pd.read_csv('obitos_por_ano_e_faixa_etaria.csv')
-    sp_top5_causes_df = pd.read_csv('sp_top5_causas_obito_por_ano.csv')
+    sp_top5_causes_df = pd.read_csv('top5_causas_obito_por_ano.csv')
     
     return years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_ano_df, sp_top5_causes_df
 
@@ -363,7 +363,7 @@ fig_causes_year.update_layout(
 )
 st.plotly_chart(fig_causes_year, use_container_width=True)
 
-# NOVO: Gráfico comparativo de Causas para o Estado de SP (subpanels empilhados se comparativo ativado)
+# Gráfico comparativo de Causas para o Estado de SP a partir do novo arquivo
 if compare_sp:
     st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
     st.subheader("📊 Comparativo das Top 5 Causas de Óbito por Ano (Estado de SP)")
@@ -378,9 +378,11 @@ if compare_sp:
             y="Total_Obitos", 
             color="Descricao_Causa", 
             barmode="group",
+            text="Total_Obitos",
             title="Evolução Anual das Principais Causas de Óbito - Estado de SP",
             color_discrete_sequence=px.colors.qualitative.Safe
         )
+        fig_causes_sp.update_traces(textposition='auto')
         fig_causes_sp.update_layout(
             plot_bgcolor='rgba(0,0,0,0)', 
             margin=dict(t=40, b=60, l=20, r=20),
