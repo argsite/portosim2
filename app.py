@@ -64,7 +64,7 @@ def load_data():
     # Load SP comparison CSVs
     sp_df = pd.read_csv('sp_total_obitos_por_ano.csv')
     sp_faixa_ano_df = pd.read_csv('obitos_por_ano_e_faixa_etaria.csv')
-    sp_top5_causes_df = pd.read_csv('sp_top5_causas_obito_por_ano_sp.csv')
+    sp_top5_causes_df = pd.read_csv('sp_top5_causas_obito_por_ano.csv')
     
     return years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_ano_df, sp_top5_causes_df
 
