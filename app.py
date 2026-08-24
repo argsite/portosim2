@@ -64,7 +64,7 @@ def load_data():
 
 years, sexo_df, local_df, faixa_df, cid_df, total_row = load_data()
 
-st.title("🏥 Dashboard Epidemiológico de Óbitos - Porto Feliz (2006-2025)")
+st.title("🏥 Painel de Análise de Mortalidade - Porto Feliz (2006 - 2025)")
 st.markdown("Painel analítico interativo avançado com dados oficiais de mortalidade do município.")
 
 # Sidebar filters
