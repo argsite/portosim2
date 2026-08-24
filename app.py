@@ -61,12 +61,13 @@ def load_data():
     # Total ano a ano
     total_row = df.iloc[5, 1:21].values.astype(float)
     
-    # Load SP comparison CSV
+    # Load SP comparison CSVs
     sp_df = pd.read_csv('sp_total_obitos_por_ano.csv')
+    sp_faixa_df = pd.read_csv('sp_obitos_total_por_faixa_etaria.csv')
     
-    return years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df
+    return years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_df
 
-years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df = load_data()
+years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df, sp_faixa_df = load_data()
 
 st.title("🏥 Dashboard Epidemiológico de Óbitos - Porto Feliz (2006-2025)")
 st.markdown("Painel analítico interativo avançado com dados oficiais de mortalidade do município.")
@@ -162,7 +163,7 @@ fig_ts.update_layout(
 
 st.plotly_chart(fig_ts, use_container_width=True)
 
-# NOVO: Gráfico de Barras Comparativo Lado a Lado com valores nas barras de SP e Porto Feliz
+# Gráfico de Barras Comparativo Anual (Lado a Lado) se ativado
 if compare_sp:
     sp_filtered = sp_df[sp_df['Ano'].isin(filtered_years)]
     
@@ -178,7 +179,6 @@ if compare_sp:
             subplot_titles=("Porto Feliz - Óbitos Anuais", "Estado de São Paulo - Óbitos Anuais")
         )
         
-        # Barras Porto Feliz
         fig_bar_comp.add_trace(
             go.Bar(
                 x=filtered_years,
@@ -191,7 +191,6 @@ if compare_sp:
             row=1, col=1
         )
         
-        # Barras Estado de SP (com rótulos numéricos)
         sp_y_values = sp_filtered['total_obitos'].values
         fig_bar_comp.add_trace(
             go.Bar(
@@ -248,6 +247,29 @@ with c4:
     fig_local.update_traces(textposition='outside')
     fig_local.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=20, l=20, r=20))
     st.plotly_chart(fig_local, use_container_width=True)
+
+# NOVO: Gráfico comparativo de Faixa Etária para o Estado de SP (exibido abaixo se comparativo ativado)
+if compare_sp:
+    st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+    st.subheader("📊 Óbitos por Faixa Etária - Estado de São Paulo")
+    st.markdown("Distribuição acumulada de óbitos por faixa etária no Estado de SP para contraponto com o município.")
+    
+    fig_sp_faixa = px.bar(
+        sp_faixa_df, 
+        x="Faixa_Etaria", 
+        y="Total_Obitos", 
+        text="Total_Obitos",
+        color="Total_Obitos", 
+        color_continuous_scale="Reds",
+        labels={"Total_Obitos": "Número de Óbitos", "Faixa_Etaria": "Faixa Etária"}
+    )
+    fig_sp_faixa.update_traces(textposition='outside')
+    fig_sp_faixa.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)', 
+        margin=dict(t=20, b=40, l=20, r=20), 
+        xaxis_tickangle=-45
+    )
+    st.plotly_chart(fig_sp_faixa, use_container_width=True)
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
