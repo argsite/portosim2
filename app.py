@@ -230,7 +230,19 @@ with c3:
     faixa_plot_df = pd.DataFrame({"Faixa Etária": faixa_labels, "Total": faixa_totals})
     
     if compare_sp:
-        # Padrão comparativo em subplots se a chave estiver ativa
+        # Padroniza os nomes das categorias para ficarem idênticos e alinhados nos subplots
+        padrao_faixas = [
+            '< 01 ano', '01-04 anos', '05-09 anos', '10-14 anos', 
+            '15-19 anos', '20-29 anos', '30-39 anos', '40-49 anos', 
+            '50-59 anos', '60-69 anos', '70-79 anos', '80 e +'
+        ]
+        
+        faixa_plot_df["Faixa Etária"] = padrao_faixas
+        
+        # Filtra/padroniza o dataframe de SP (removendo 'Nao informada' para alinhar perfeitamente)
+        sp_faixa_filtrado = sp_faixa_df[sp_faixa_df['Faixa_Etaria'] != 'Nao informada'].copy()
+        sp_faixa_filtrado["Faixa_Etaria"] = padrao_faixas
+        
         fig_faixa_comp = make_subplots(
             rows=2, cols=1,
             shared_xaxes=True,
@@ -252,11 +264,11 @@ with c3:
         
         fig_faixa_comp.add_trace(
             go.Bar(
-                x=sp_faixa_df["Faixa_Etaria"],
-                y=sp_faixa_df["Total_Obitos"],
+                x=sp_faixa_filtrado["Faixa_Etaria"],
+                y=sp_faixa_filtrado["Total_Obitos"],
                 name='Estado de SP',
                 marker_color='#d9534f',
-                text=sp_faixa_df["Total_Obitos"],
+                text=sp_faixa_filtrado["Total_Obitos"],
                 textposition='auto'
             ),
             row=2, col=1
@@ -275,7 +287,6 @@ with c3:
         
         st.plotly_chart(fig_faixa_comp, use_container_width=True)
     else:
-        # Gráfico padrão simples de Porto Feliz
         fig_faixa = px.bar(faixa_plot_df, x="Faixa Etária", y="Total", text="Total",
                            color="Total", color_continuous_scale="Teal",
                            labels={"Total": "Número de Óbitos"})
