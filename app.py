@@ -1,17 +1,24 @@
 
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Dashboard de Óbitos - Porto Feliz", page_icon="📊", layout="wide")
+
+# Custom CSS for polished look
+st.markdown("""
+    <style>
+    .main { background-color: #f8f9fa; }
+    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    </style>
+=""", unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
     file_path = "óbitos_portofeliz.xlsx"
     df = pd.read_excel(file_path)
     
-    # Extracting sections
     years = [int(y) for y in df.iloc[1, 1:21].values]
     
     # Sexo
@@ -38,89 +45,128 @@ def load_data():
 years, sexo_df, local_df, faixa_df, cid_df, total_row = load_data()
 
 st.title("🏥 Dashboard Epidemiológico de Óbitos - Porto Feliz (2006-2025)")
-st.markdown("Painel analítico interativo baseado nos dados oficiais de mortalidade de residentes no município.")
+st.markdown("Painel analítico interativo avançado com dados oficiais de mortalidade do município.")
 
 # Sidebar filters
 st.sidebar.header("Filtros e Configurações")
 selected_range = st.sidebar.slider("Selecione o Período (Anos)", min_value=min(years), max_value=max(years), value=(min(years), max(years)))
 
-# Filter years index
 start_idx = years.index(selected_range[0])
 end_idx = years.index(selected_range[1])
 filtered_years = years[start_idx:end_idx+1]
 
-# KPI metrics
-col1, col2, col3, col4 = st.columns(4)
+# Calculations for metrics
 total_filtered_deaths = sum(total_row[start_idx:end_idx+1])
 avg_deaths_year = total_filtered_deaths / len(filtered_years)
 
-col1.metric("Total de Óbitos (Período)", int(total_filtered_deaths))
+sex_totals_filtered = sexo_df.iloc[:-1, start_idx+1:end_idx+2].sum(axis=1).values
+total_masc = sex_totals_filtered[0]
+total_fem = sex_totals_filtered[1]
+
+# Estimate average age based on age brackets midpoints
+age_midpoints = {
+    '< 01 ano': 0.5, '01-04 anos': 2.5, '05-09 anos': 7.5, '10-14 anos': 12.5,
+    '15-19 anos': 17.5, '20-29 anos': 24.5, '30-39 anos': 34.5, '40-49 anos': 44.5,
+    '50-59 anos': 54.5, '60-69 anos': 64.5, '70-79 anos': 74.5, '80 e +': 85.0
+}
+faixa_sub = faixa_df.iloc[:-1].copy()
+total_age_sum = 0
+total_count_age = 0
+for idx, row in faixa_sub.iterrows():
+    cat = row['Categoria']
+    if cat in age_midpoints:
+        count = row.iloc[start_idx+1:end_idx+2].sum()
+        total_age_sum += count * age_midpoints[cat]
+        total_count_age += count
+est_avg_age = total_age_sum / total_count_age if total_count_age > 0 else 0
+
+# KPI Cards Row 1
+col1, col2, col3, col4, col5 = st.columns(5)
+col1.metric("Total de Óbitos", int(total_filtered_deaths))
 col2.metric("Média Anual", f"{avg_deaths_year:.1f}")
-col3.metric("Ano com Maior Registro", years[start_idx + list(total_row[start_idx:end_idx+1]).index(max(total_row[start_idx:end_idx+1]))])
-col4.metric("Ano com Menor Registro", years[start_idx + list(total_row[start_idx:end_idx+1]).index(min(total_row[start_idx:end_idx+1]))])
+col3.metric("Óbitos Masculinos", int(total_masc), f"{(total_masc/total_filtered_deaths)*100:.1f}%")
+col4.metric("Óbitos Femininos", int(total_fem), f"{(total_fem/total_filtered_deaths)*100:.1f}%")
+col5.metric("Média de Idade Est.", f"{est_avg_age:.1f} anos")
 
 st.markdown("---")
 
-# Row 1: Time Series Curve
-st.subheader("📈 Curva de Óbitos ao Longo dos Anos")
-fig, ax = plt.subplots(figsize=(10, 4))
-sub_years = years[start_idx:end_idx+1]
-sub_totals = total_row[start_idx:end_idx+1]
-ax.plot(sub_years, sub_totals, marker='o', color='#1f77b4', linewidth=2.5)
-ax.set_title(f"Evolução Temporal ({selected_range[0]} - {selected_range[1]})")
-ax.set_xlabel("Ano")
-ax.set_ylabel("Número de Óbitos")
-ax.grid(True, linestyle='--', alpha=0.6)
-st.pyplot(fig)
+# Row 1: Time Series & Sex Distribution
+c1, c2 = st.columns([2, 1])
 
-# Row 2: Sex & Location
-col_a, col_b = st.columns(2)
+with c1:
+    st.subheader("📈 Curva de Óbitos ao Longo dos Anos")
+    ts_df = pd.DataFrame({"Ano": filtered_years, "Óbitos": total_row[start_idx:end_idx+1]})
+    fig_ts = px.line(ts_df, x="Ano", y="Óbitos", markers=True, 
+                     color_discrete_sequence=['#2b5c8f'])
+    fig_ts.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=20, l=20, r=20))
+    st.plotly_chart(fig_ts, use_container_width=True)
 
-with col_a:
+with c2:
     st.subheader("👥 Óbitos por Sexo")
-    sex_totals = sexo_df.iloc[:-1, start_idx+1:end_idx+2].sum(axis=1).values
-    sex_labels = sexo_df['Categoria'].values[:-1]
-    
-    fig2, ax2 = plt.subplots(figsize=(5, 5))
-    ax2.pie(sex_totals, labels=sex_labels, autopct='%1.1f%%', colors=['#ff9999','#66b3ff'], startangle=90)
-    ax2.axis('equal')
-    st.pyplot(fig2)
+    sex_df_plot = pd.DataFrame({"Sexo": ['Masculino', 'Feminino'], "Total": [total_masc, total_fem]})
+    fig_sex = px.pie(sex_df_plot, names="Sexo", values="Total", hole=0.4,
+                     color_discrete_sequence=['#3b82f6', '#ec4899'])
+    fig_sex.update_layout(margin=dict(t=20, b=20, l=20, r=20), legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5))
+    st.plotly_chart(fig_sex, use_container_width=True)
 
-with col_b:
+# Row 2: Age Distribution with numbers & Local de Ocorrência
+c3, c4 = st.columns(2)
+
+with c3:
+    st.subheader("👶👵 Óbitos por Faixa Etária (com Totais)")
+    faixa_totals = faixa_df.iloc[:-1, start_idx+1:end_idx+2].sum(axis=1).values
+    faixa_labels = faixa_df['Categoria'].values[:-1]
+    faixa_plot_df = pd.DataFrame({"Faixa Etária": faixa_labels, "Total": faixa_totals})
+    
+    fig_faixa = px.bar(faixa_plot_df, x="Faixa Etária", y="Total", text="Total",
+                       color="Total", color_continuous_scale="Teal",
+                       labels={"Total": "Número de Óbitos"})
+    fig_faixa.update_traces(textposition='outside')
+    fig_faixa.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=40, l=20, r=20), xaxis_tickangle=-45)
+    st.plotly_chart(fig_faixa, use_container_width=True)
+
+with c4:
     st.subheader("📍 Local de Ocorrência")
     local_totals = local_df.iloc[:, start_idx+1:end_idx+2].sum(axis=1).values
     local_labels = local_df['Categoria'].values
+    local_plot_df = pd.DataFrame({"Local": local_labels, "Total": local_totals}).sort_values("Total", ascending=True)
     
-    fig3, ax3 = plt.subplots(figsize=(6, 4))
-    sns.barplot(x=local_totals, y=local_labels, palette='viridis', ax=ax3)
-    ax3.set_xlabel("Total de Óbitos")
-    ax3.set_ylabel("")
-    st.pyplot(fig3)
+    fig_local = px.bar(local_plot_df, x="Total", y="Local", orientation='h', text="Total",
+                       color="Total", color_continuous_scale="Purples")
+    fig_local.update_traces(textposition='outside')
+    fig_local.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=20, l=20, r=20))
+    st.plotly_chart(fig_local, use_container_width=True)
 
-# Row 3: Age Groups
-st.subheader("👶👵 Óbitos por Faixa Etária")
-faixa_totals = faixa_df.iloc[:-1, start_idx+1:end_idx+2].sum(axis=1).values
-faixa_labels = faixa_df['Categoria'].values[:-1]
+st.markdown("---")
 
-fig4, ax4 = plt.subplots(figsize=(10, 4))
-sns.barplot(x=faixa_labels, y=faixa_totals, palette='mako', ax=ax4)
-plt.xticks(rotation=45)
-ax4.set_xlabel("Faixa Etária")
-ax4.set_ylabel("Total de Óbitos")
-st.pyplot(fig4)
+# Row 3: Causes analysis
+st.subheader("🔬 Análise Detalhada de Causas (Capítulos CID-10)")
 
-# Row 4: CID Chapters
-st.subheader("🔬 Principais Causas (Capítulos CID-10)")
-cid_totals = cid_df.iloc[:, start_idx+1:end_idx+2].sum(axis=1).values
-cid_labels = [c[:35] for c in cid_df['Categoria'].values]
+# Stacked/Grouped bar chart of Top Causes by Year
+# Let's prepare a long dataframe for CID chapters across filtered years
+cid_long_list = []
+top_cid_rows = cid_df.copy()
+top_cid_rows['SumTotal'] = top_cid_rows.iloc[:, 1:21].sum(axis=1)
+top_cid_rows = top_cid_rows.sort_values('SumTotal', ascending=False).head(5) # Top 5 causes
 
-# Sort by totals descending for better visual
-sorted_indices = cid_totals.argsort()[::-1]
-sorted_totals = cid_totals[sorted_indices]
-sorted_labels = [cid_labels[i] for i in sorted_indices]
+for idx, row in top_cid_rows.iterrows():
+    cat = row['Categoria'][:30]
+    for i, y in enumerate(years):
+        if start_idx <= i <= end_idx:
+            cid_long_list.append({"Ano": y, "Causa": cat, "Óbitos": row.iloc[i+1]})
 
-fig5, ax5 = plt.subplots(figsize=(10, 6))
-sns.barplot(x=sorted_totals[:10], y=sorted_labels[:10], palette='rocket', ax=ax5)
-ax5.set_xlabel("Total de Óbitos")
-ax5.set_ylabel("")
-st.pyplot(fig5)
+cid_long_df = pd.DataFrame(cid_long_list)
+
+fig_causes_year = px.bar(cid_long_df, x="Ano", y="Óbitos", color="Causa", barmode="group",
+                         title="Evolução Anual das 5 Principais Causas de Óbito",
+                         color_discrete_sequence=px.colors.qualitative.Bold)
+fig_causes_year.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=20, l=20, r=20))
+st.plotly_chart(fig_causes_year, use_container_width=True)
+
+# Row 4: Top Causes overall bar chart
+fig_top_cid = px.bar(top_cid_rows, x='SumTotal', y=top_cid_rows['Categoria'].apply(lambda x: x[:35]), orientation='h',
+                     text='SumTotal', title="Top Capítulos da CID-10 no Período Selecionado",
+                     color='SumTotal', color_continuous_scale='Reds')
+fig_top_cid.update_traces(textposition='outside')
+fig_top_cid.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=20, l=20, r=20), yaxis=dict(autorange="reversed"))
+st.plotly_chart(fig_top_cid, use_container_width=True)
