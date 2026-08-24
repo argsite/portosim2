@@ -113,7 +113,7 @@ with c1:
 
 with c2:
     st.subheader("👥 Óbitos por Sexo")
-    sex_df_plot = pd.DataFrame({"Sexo": ['Masculino', 'Feminino'], "Total": [total_masc, total_fem]})
+    sex_df_plot = pd.DataFrame({"Sexo": ['Feminino', 'Masculino'], "Total": [total_masc, total_fem]})
     fig_sex = px.pie(sex_df_plot, names="Sexo", values="Total", hole=0.4,
                      color_discrete_sequence=['#3b82f6', '#ec4899'])
     fig_sex.update_layout(margin=dict(t=20, b=20, l=20, r=20), legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5))
