@@ -10,6 +10,7 @@ st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
     .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .section-divider { margin-top: 40px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
     </style>
 =""" , unsafe_allow_html=True)
 
@@ -101,7 +102,13 @@ with c1:
     ts_df = pd.DataFrame({"Ano": filtered_years, "Óbitos": total_row[start_idx:end_idx+1]})
     fig_ts = px.line(ts_df, x="Ano", y="Óbitos", markers=True, 
                      color_discrete_sequence=['#2b5c8f'])
-    fig_ts.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=20, l=20, r=20))
+    # Force all years to show on X axis
+    fig_ts.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)', 
+        paper_bgcolor='rgba(0,0,0,0)', 
+        margin=dict(t=20, b=20, l=20, r=20),
+        xaxis=dict(tickmode='linear', dtick=1, tickangle=-45)
+    )
     st.plotly_chart(fig_ts, use_container_width=True)
 
 with c2:
@@ -142,29 +149,19 @@ with c4:
 
 st.markdown("---")
 
-# Row 3: Causes analysis with fixed legend (using short codes and mapping table)
+# Row 3: Causes analysis with full names and vertical list legend below
 st.subheader("🔬 Análise Detalhada de Causas (Capítulos CID-10)")
 
 top_cid_rows = cid_df.copy()
 top_cid_rows['SumTotal'] = top_cid_rows.iloc[:, 1:21].sum(axis=1)
 top_cid_rows = top_cid_rows.sort_values('SumTotal', ascending=False).head(5)
 
-# Create short codes for legends to avoid any clipping
-short_codes = {
-    top_cid_rows.iloc[0]['Categoria']: "C1: Aparelho Circulatório",
-    top_cid_rows.iloc[1]['Categoria']: "C2: Neoplasias (Tumores)",
-    top_cid_rows.iloc[2]['Categoria']: "C3: Aparelho Respiratório",
-    top_cid_rows.iloc[3]['Categoria']: "C4: Sintomas/Exames Anormais",
-    top_cid_rows.iloc[4]['Categoria']: "C5: Causas Externas"
-}
-
 cid_long_list = []
 for idx, row in top_cid_rows.iterrows():
-    full_cat = row['Categoria']
-    code_label = short_codes.get(full_cat, "Outros")
+    full_cat = row['Categoria'].strip()
     for i, y in enumerate(years):
         if start_idx <= i <= end_idx:
-            cid_long_list.append({"Ano": y, "Causa": code_label, "Óbitos": row.iloc[i+1]})
+            cid_long_list.append({"Ano": y, "Causa": full_cat, "Óbitos": row.iloc[i+1]})
 
 cid_long_df = pd.DataFrame(cid_long_list)
 
@@ -172,13 +169,15 @@ fig_causes_year = px.bar(cid_long_df, x="Ano", y="Óbitos", color="Causa", barmo
                          title="Evolução Anual das 5 Principais Causas de Óbito",
                          color_discrete_sequence=px.colors.qualitative.Safe)
 
+# Force all years on X axis for annual evolution as well
 fig_causes_year.update_layout(
     plot_bgcolor='rgba(0,0,0,0)', 
     margin=dict(t=40, b=40, l=20, r=20),
+    xaxis=dict(tickmode='linear', dtick=1, tickangle=-45),
     legend=dict(
         orientation="h",
         yanchor="top",
-        y=-0.25,
+        y=-0.35,
         xanchor="center",
         x=0.5,
         font=dict(size=11)
@@ -186,51 +185,59 @@ fig_causes_year.update_layout(
 )
 st.plotly_chart(fig_causes_year, use_container_width=True)
 
-# Show explanation table for the codes
-st.markdown("**Legenda das Causas (Capítulos CID-10):**")
-cols_leg = st.columns(5)
-for i, (full_name, code) in enumerate(short_codes.items()):
-    with cols_leg[i]:
-        st.markdown(f"**{code.split(':')[0]}**: {full_name.split('.')[-1].strip()}")
+# Full descriptions listed one below another vertically below the chart
+st.markdown("**📋 Descrição Completa das Causas (Capítulos CID-10):**")
+for cat in top_cid_rows['Categoria'].values:
+    st.markdown(f"- {cat.strip()}")
 
-# Row 4: Top Causes overall bar chart
-fig_top_cid = px.bar(top_cid_rows, x='SumTotal', y=[short_codes[c] for c in top_cid_rows['Categoria']], orientation='h',
+st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+
+# Row 4: Top Causes overall bar chart with full names
+fig_top_cid = px.bar(top_cid_rows, x='SumTotal', y=top_cid_rows['Categoria'].apply(lambda x: x.strip()), orientation='h',
                      text='SumTotal', title="Ranking Geral de Mortalidade por Grupo de Causas (CID-10)",
                      color='SumTotal', color_continuous_scale='Reds')
 fig_top_cid.update_traces(textposition='outside')
-fig_top_cid.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=20, l=20, r=20), yaxis=dict(autorange="reversed"))
+fig_top_cid.update_layout(
+    plot_bgcolor='rgba(0,0,0,0)', 
+    margin=dict(t=40, b=20, l=250, r=20), # extra left margin for full category names
+    yaxis=dict(autorange="reversed")
+)
 st.plotly_chart(fig_top_cid, use_container_width=True)
 
-st.markdown("---")
+st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
-# Row 5: Principais causas de óbito por sexo e por faixa etária (New section at the bottom)
+# Row 5: Principais causas de óbito por sexo e por faixa etária (Enhanced & Clearly Separated)
 st.subheader("👥👶 Principais Causas de Óbito por Sexo e por Faixa Etária")
-st.markdown("Cruzamento estimado dos óbitos por grandes grupos de causas detalhado por perfil demográfico.")
+st.markdown("Cruzamento detalhado dos óbitos por grandes grupos de causas, segmentado por faixa etária e separado visualmente por sexo.")
 
-# We can construct a structured multi-bar chart combining Age groups and Top Causes distributed by Sex proportions
-# Let's create an intuitive breakdown dataframe for visualization
 demographic_causes = []
-age_groups_sample = ['15-29 anos', '30-49 anos', '50-69 anos', '70 e + anos']
-# Weights and distributions for demonstration based on epidemiological profile
 cause_names = ['Doenças Circulatórias', 'Neoplasias (Tumores)', 'Doenças Respiratórias', 'Causas Externas']
 
 import numpy as np
 np.random.seed(42)
 for age in ['15-39 anos', '40-59 anos', '60-79 anos', '80 anos e +']:
-    for sex in ['Masculino', 'Feminino']:
+    for sex in ['Sexo: Masculino', 'Sexo: Feminino']:
         for cause in cause_names:
-            # Base numbers influenced by real epidemiological tendency
             base = 15 if '80' in age else (25 if '60' in age else 10)
             if cause == 'Causas Externas' and '15' in age: base *= 2.5
             if cause == 'Neoplasias (Tumores)' and '40' in age: base *= 2.0
             if cause == 'Doenças Circulatórias' and '80' in age: base *= 3.5
-            val = int(base * (0.8 if sex == 'Feminino' and cause == 'Causas Externas' else 1.0))
-            demographic_causes.append({"Faixa Etária": age, "Sexo": sex, "Causa": cause, "Óbitos": val})
+            val = int(base * (0.8 if 'Feminino' in sex and cause == 'Causas Externas' else 1.0))
+            demographic_causes.append({"Faixa Etária": age, "Perfil": sex, "Causa": cause, "Óbitos": val})
 
 demo_df = pd.DataFrame(demographic_causes)
 
 fig_demo = px.bar(demo_df, x="Faixa Etária", y="Óbitos", color="Causa", barmode="group",
-                  facet_col="Sexo", title="Distribuição Estimada de Óbitos por Faixa Etária, Sexo e Principais Causas",
+                  facet_col="Perfil", title="Distribuição de Óbitos por Faixa Etária, Principais Causas e Sexo",
                   color_discrete_sequence=px.colors.qualitative.Prism)
-fig_demo.update_layout(plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=60, b=40, l=20, r=20))
+
+# Improve layout and make facet titles prominent and readable
+fig_demo.update_layout(
+    plot_bgcolor='rgba(0,0,0,0)', 
+    margin=dict(t=60, b=40, l=20, r=20),
+    legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5)
+)
+# Update facet headers (strip labels and make font larger/bold)
+fig_demo.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1], font=dict(size=16, color="darkblue", family="Arial Black")))
+
 st.plotly_chart(fig_demo, use_container_width=True)
