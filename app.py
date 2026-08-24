@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 st.set_page_config(page_title="Dashboard de Óbitos - Porto Feliz", page_icon="📊", layout="wide")
 
@@ -135,31 +136,42 @@ for col, (title, val) in zip(cols, card_data):
 
 st.markdown("---")
 
-# Row 1: Time Series with optional SP comparison line
+# Row 1: Time Series with Dual Y-Axis when SP comparison is enabled
 st.subheader("📈 Curva de Óbitos ao Longo dos Anos")
 
-fig_ts = go.Figure()
+fig_ts = make_subplots(specs=[[{"secondary_y": True}]])
 
-# Porto Feliz trace
-fig_ts.add_trace(go.Scatter(
-    x=filtered_years,
-    y=total_row[start_idx:end_idx+1],
-    mode='lines+markers',
-    name='Porto Feliz',
-    line=dict(color='#2b5c8f', width=3)
-))
+# Porto Feliz trace (Primary Y-axis)
+fig_ts.add_trace(
+    go.Scatter(
+        x=filtered_years,
+        y=total_row[start_idx:end_idx+1],
+        mode='lines+markers',
+        name='Porto Feliz (Escala Esquerda)',
+        line=dict(color='#2b5c8f', width=3)
+    ),
+    secondary_y=False
+)
 
-# SP comparison trace if enabled
+# SP comparison trace if enabled (Secondary Y-axis)
 if compare_sp:
     sp_filtered = sp_df[sp_df['Ano'].isin(filtered_years)]
     if not sp_filtered.empty:
-        fig_ts.add_trace(go.Scatter(
-            x=sp_filtered['Ano'],
-            y=sp_filtered['total_obitos'],
-            mode='lines+markers',
-            name='Estado de São Paulo',
-            line=dict(color='#e74c3c', width=2.5, dash='dash')
-        ))
+        fig_ts.add_trace(
+            go.Scatter(
+                x=sp_filtered['Ano'],
+                y=sp_filtered['total_obitos'],
+                mode='lines+markers',
+                name='Estado de São Paulo (Escala Direita)',
+                line=dict(color='#e74c3c', width=2.5, dash='dash')
+            ),
+            secondary_y=True
+        )
+
+# Y-axes titles
+fig_ts.update_yaxes(title_text="Óbitos em Porto Feliz", titlefont=dict(color="#2b5c8f"), secondary_y=False)
+if compare_sp:
+    fig_ts.update_yaxes(title_text="Óbitos no Estado de SP", titlefont=dict(color="#e74c3c"), secondary_y=True)
 
 fig_ts.update_layout(
     plot_bgcolor='rgba(0,0,0,0)', 
