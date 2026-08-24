@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Painel de Análise de Mortalidade - Porto Feliz (2006 a 2025)", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Dashboard de Óbitos - Porto Feliz", page_icon="📊", layout="wide")
 
 st.markdown("""
     <style>
@@ -32,7 +32,7 @@ st.markdown("""
     }
     .section-divider { margin-top: 40px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
     </style>
-=""" , unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
@@ -60,16 +60,24 @@ def load_data():
     # Total ano a ano
     total_row = df.iloc[5, 1:21].values.astype(float)
     
-    return years, sexo_df, local_df, faixa_df, cid_df, total_row
+    # Load SP comparison CSV
+    sp_df = pd.read_csv('sp_total_obitos_por_ano.csv')
+    
+    return years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df
 
-years, sexo_df, local_df, faixa_df, cid_df, total_row = load_data()
+years, sexo_df, local_df, faixa_df, cid_df, total_row, sp_df = load_data()
 
-st.title("🏥 Painel de Análise de Mortalidade - Porto Feliz (2006 - 2025)")
+st.title("🏥 Dashboard Epidemiológico de Óbitos - Porto Feliz (2006-2025)")
 st.markdown("Painel analítico interativo avançado com dados oficiais de mortalidade do município.")
 
 # Sidebar filters
 st.sidebar.header("Filtros e Configurações")
 selected_range = st.sidebar.slider("Selecione o Período (Anos)", min_value=min(years), max_value=max(years), value=(min(years), max(years)))
+
+# Toggle for comparison
+st.sidebar.markdown("---")
+st.sidebar.header("Comparativo Regional")
+compare_sp = st.sidebar.checkbox("Ativar comparação com dados de SP")
 
 start_idx = years.index(selected_range[0])
 end_idx = years.index(selected_range[1])
@@ -127,16 +135,38 @@ for col, (title, val) in zip(cols, card_data):
 
 st.markdown("---")
 
-# Row 1: Time Series
+# Row 1: Time Series with optional SP comparison line
 st.subheader("📈 Curva de Óbitos ao Longo dos Anos")
-ts_df = pd.DataFrame({"Ano": filtered_years, "Óbitos": total_row[start_idx:end_idx+1]})
-fig_ts = px.line(ts_df, x="Ano", y="Óbitos", markers=True, 
-                 color_discrete_sequence=['#2b5c8f'])
+
+fig_ts = go.Figure()
+
+# Porto Feliz trace
+fig_ts.add_trace(go.Scatter(
+    x=filtered_years,
+    y=total_row[start_idx:end_idx+1],
+    mode='lines+markers',
+    name='Porto Feliz',
+    line=dict(color='#2b5c8f', width=3)
+))
+
+# SP comparison trace if enabled
+if compare_sp:
+    sp_filtered = sp_df[sp_df['Ano'].isin(filtered_years)]
+    if not sp_filtered.empty:
+        fig_ts.add_trace(go.Scatter(
+            x=sp_filtered['Ano'],
+            y=sp_filtered['total_obitos'],
+            mode='lines+markers',
+            name='Estado de São Paulo',
+            line=dict(color='#e74c3c', width=2.5, dash='dash')
+        ))
+
 fig_ts.update_layout(
     plot_bgcolor='rgba(0,0,0,0)', 
     paper_bgcolor='rgba(0,0,0,0)', 
-    margin=dict(t=20, b=20, l=20, r=20),
-    xaxis=dict(tickmode='linear', dtick=1, tickangle=-45)
+    margin=dict(t=30, b=20, l=20, r=20),
+    xaxis=dict(tickmode='linear', dtick=1, tickangle=-45),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
 )
 st.plotly_chart(fig_ts, use_container_width=True)
 
@@ -146,7 +176,7 @@ st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 c3, c4 = st.columns(2)
 
 with c3:
-    st.subheader("👶👵 Óbitos por Faixa Etária")
+    st.subheader("👶👵 Óbitos por Faixa Etária (com Totais)")
     faixa_totals = faixa_df.iloc[:-1, start_idx+1:end_idx+2].sum(axis=1).values
     faixa_labels = faixa_df['Categoria'].values[:-1]
     faixa_plot_df = pd.DataFrame({"Faixa Etária": faixa_labels, "Total": faixa_totals})
@@ -172,8 +202,8 @@ with c4:
 
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
-# Row 3: Causes analysis (legend only, description text list removed)
-st.subheader("🔬 Análise Detalhada de Causas")
+# Row 3: Causes analysis
+st.subheader("🔬 Análise Detalhada de Causas (Capítulos CID-10)")
 
 top_cid_rows = cid_df.copy()
 top_cid_rows['SumTotal'] = top_cid_rows.iloc[:, start_idx+1:end_idx+2].sum(axis=1)
@@ -211,7 +241,7 @@ st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 
 # Row 4: Top Causes overall bar chart with full names
 fig_top_cid = px.bar(top_cid_rows, x='SumTotal', y=top_cid_rows['Categoria'].apply(lambda x: x.strip()), orientation='h',
-                     text='SumTotal', title="Ranking Geral de Mortalidade por Grupo de Causas",
+                     text='SumTotal', title="Ranking Geral de Mortalidade por Grupo de Causas (CID-10)",
                      color='SumTotal', color_continuous_scale='Reds')
 fig_top_cid.update_traces(textposition='outside')
 fig_top_cid.update_layout(
