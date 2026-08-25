@@ -410,7 +410,7 @@ st.plotly_chart(fig_causes_year, use_container_width=True)
 # Gráfico comparativo de Causas para o Estado de SP a partir do novo arquivo
 if compare_sp:
     st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
-    st.subheader("📊 Comparativo das Top 5 Causas de Óbito por Ano (Estado de SP)")
+    st.subheader("📊 Comparativo das 5 Principais Causas de Óbito por Ano (Estado de SP)")
     st.markdown("Evolução anual das principais causas de óbito registradas no Estado de São Paulo.")
     
     sp_causes_filtered = sp_top5_causes_df[sp_top5_causes_df['Ano'].isin(filtered_years)]
